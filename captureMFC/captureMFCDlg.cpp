@@ -262,8 +262,6 @@ void CcaptureMFCDlg::OnTimer(UINT_PTR nIDEvent)
 	{
 		GetDlgItem(IDC_ShowImage)->GetClientRect(&rect);
 		m_CvvImage.DrawToHDC(hDC, &rect);
-		//cvWaitKey(10);  
-		//SaveImg(m_Frame,0);
 	}
 	CDialogEx::OnTimer(nIDEvent);
 }
