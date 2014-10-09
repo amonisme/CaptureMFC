@@ -243,29 +243,6 @@ void CcaptureMFCDlg::OnBnClickedCancel()
 	CDialogEx::OnCancel();
 }
 
-/*void CcaptureMFCDlg::OnBnClickedButton1()
-{
-	
-	// TODO:  在此添加控件通知处理程序代码
-	if (!capture){
-		capture = cvCaptureFromCAM(0);
-	}
-	if (!capture)
-	{
-		AfxMessageBox(_T("无法打开摄像头"));
-		return;
-	}
-	IplImage* frame;
-	frame = cvQueryFrame(capture);
-	CvvImage cvvimage;
-	cvvimage.CopyOf(frame,1);
-	if (true){
-		cvvimage.DrawToHDC(hDC,&rect);
-	}
-	SetTimer(1, 10, NULL);
-	
-}*/
-
 void CcaptureMFCDlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
