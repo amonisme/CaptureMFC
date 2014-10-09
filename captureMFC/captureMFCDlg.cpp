@@ -138,8 +138,7 @@ BOOL CcaptureMFCDlg::OnInitDialog()
 	// TODO:  在此添加额外的初始化代码
 	pwnd = GetDlgItem(IDC_ShowImage);
 	//pwnd->MoveWindow(35,30,352,288);  
-	pDC = pwnd->GetDC();
-	//pDC =GetDC();  
+	pDC = pwnd->GetDC();  
 	hDC = pDC->GetSafeHdc();
 	pwnd->GetClientRect(&rect);
 	//GetDlgItem(IDC_ShowImage)->GetWindowRect(&rect);
@@ -152,14 +151,13 @@ BOOL CcaptureMFCDlg::OnInitDialog()
 	{
 		AfxMessageBox(_T("无法打开摄像头"));
 	}
-	IplImage* frame;
-	frame = cvQueryFrame(capture);
+	m_Frame = cvQueryFrame(capture);
 	CvvImage cvvimage;
-	cvvimage.CopyOf(frame, 1);
+	cvvimage.CopyOf(m_Frame, 1);
 	if (true){
 		cvvimage.DrawToHDC(hDC, &rect);
 	}
-	SetTimer(1, 10, NULL);
+	SetTimer(TIMER1, 10, NULL);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -285,14 +283,14 @@ void CcaptureMFCDlg::OnBnClickedButton1()
 			state = 1;
 			CWnd * pwnd_button1 = GetDlgItem(IDC_BUTTON1);
 			pwnd_button1->SetWindowTextW(_T("停止截图"));
-			SetTimer(1, timenum, AutoSave);
+			SetTimer(TIMER2, timenum, AutoSave);
 		}
 		else 
 		{
 			state = 0;
 			CWnd * pwnd_button1 = GetDlgItem(IDC_BUTTON1);
 			pwnd_button1->SetWindowTextW(_T("开始截图"));
-			SetTimer(1, 10, NULL);
+			SetTimer(TIMER2, 10, NULL);
 		}
 		
 	}
@@ -369,7 +367,7 @@ void CALLBACK EXPORT AutoSave(
 	)
 {
 	CcaptureMFCDlg c;
-	if (!capture){
+	/*if (!capture){
 		capture = cvCaptureFromCAM(0);
 	}
 	if (!capture)
@@ -384,7 +382,7 @@ void CALLBACK EXPORT AutoSave(
 	if (true){
 	//	c.GetDlgItem(IDC_ShowImage)->GetClientRect(&rect);
 		cvvimage.DrawToHDC(hDC, &rect);
-	}
-	c.SaveImg(frame, 0);
+	}*/
+	c.SaveImg(m_Frame, 0);
 }
 
