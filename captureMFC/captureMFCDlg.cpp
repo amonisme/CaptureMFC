@@ -19,6 +19,7 @@ CDC *pDC;
 HDC hDC;
 CWnd *pwnd;
 int timenum=100;//定时截图的时间
+int state = 0; //开始截图按钮的状态
 
 BEGIN_EASYSIZE_MAP(CcaptureMFCDlg)
 	EASYSIZE(IDCANCEL, ES_KEEPSIZE, ES_BORDER, ES_BORDER, ES_KEEPSIZE, 0)
@@ -81,7 +82,7 @@ void CcaptureMFCDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_EDIT1, timenum);
-	DDV_MinMaxInt(pDX, timenum, 1, 1000000);
+	//DDV_MinMaxInt(pDX, timenum, 1, 1000000);
 }
 
 BEGIN_MESSAGE_MAP(CcaptureMFCDlg, CDialogEx)
@@ -279,10 +280,31 @@ void CcaptureMFCDlg::OnBnClickedButton1()
 	}
 	else
 	{
-		SetTimer(1, timenum, AutoSave);
+		if (state == 0)
+		{
+			state = 1;
+			CWnd * pwnd_button1 = GetDlgItem(IDC_BUTTON1);
+			pwnd_button1->SetWindowTextW(_T("停止截图"));
+			SetTimer(1, timenum, AutoSave);
+		}
+		else 
+		{
+			state = 0;
+			CWnd * pwnd_button1 = GetDlgItem(IDC_BUTTON1);
+			pwnd_button1->SetWindowTextW(_T("开始截图"));
+			SetTimer(1, 10, NULL);
+		}
+		
 	}
 }
-
+/*void CcaptureMFCDlg::AutoRecoard(int savetime)
+{
+	while (state == 1)
+	{
+		SaveImg(m_Frame, 0);
+		Sleep(savetime);
+	}
+}*/
 void CcaptureMFCDlg::OnBnClickedButton2()
 {
 	// TODO:  在此添加控件通知处理程序代码
@@ -363,6 +385,6 @@ void CALLBACK EXPORT AutoSave(
 	//	c.GetDlgItem(IDC_ShowImage)->GetClientRect(&rect);
 		cvvimage.DrawToHDC(hDC, &rect);
 	}
-	c.SaveImg(m_Frame, 0);
+	c.SaveImg(frame, 0);
 }
 

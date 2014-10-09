@@ -45,7 +45,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg int SaveImg(Mat mat, int flag);
-	afx_msg int AutoRecoard(VideoCapture& cap);
+	afx_msg void AutoRecoard(int savetime);
 	afx_msg void DrawPicToHDC(IplImage *img, UINT ID);
 	afx_msg void OnBnClickedCancel();
 	afx_msg void OnBnClickedButton1();
