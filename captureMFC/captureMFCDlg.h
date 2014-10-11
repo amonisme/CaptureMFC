@@ -48,9 +48,9 @@ public:
 	afx_msg void AutoRecoard(int savetime);
 	afx_msg void DrawPicToHDC(IplImage *img, UINT ID);
 	afx_msg void OnBnClickedCancel();
-	afx_msg void OnBnClickedButton1();
-	afx_msg void OnBnClickedButton2();
+	afx_msg void OnBnClickedAutosave();
+	afx_msg void OnBnClickedManualsave();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnEnChangeEdit1();
+	afx_msg void OnEnChangeAutotime();
 };
