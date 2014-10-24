@@ -10,6 +10,7 @@
 #include "sys/timeb.h"
 #include "CvvImage.h"
 #include "easysize.h"
+#include   <vfw.h>   
 using namespace cv;
 using namespace std;
 
@@ -53,4 +54,6 @@ public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnEnChangeAutotime();
+	afx_msg void OnStnClickedShowxximgtext();
+	afx_msg void OnStnClickedShowxximage();
 };

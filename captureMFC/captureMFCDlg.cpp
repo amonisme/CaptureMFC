@@ -7,33 +7,37 @@
 #include "captureMFCDlg.h"
 #include "afxdialogex.h"
 #include "easysize.h"
+#include  "vfw.h" 
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
 CvCapture* capture;
-IplImage* m_Frame;
-CRect rect;
+IplImage* g_Frame;
+CRect rect[2];
 CDC *pDC;
-HDC hDC;
+HDC hDC[2];
 CWnd *pwnd;
-int timenum=100;//定时截图的时间
+int timenum = 100;//定时截图的时间
 int state = 0; //开始截图按钮的状态
 
 BEGIN_EASYSIZE_MAP(CcaptureMFCDlg)
 	EASYSIZE(IDCANCEL, ES_KEEPSIZE, ES_BORDER, ES_BORDER, ES_KEEPSIZE, 0)
-	EASYSIZE(IDC_BUTTON2, ES_KEEPSIZE, ES_BORDER, ES_BORDER, IDCANCEL, 0)
-	EASYSIZE(IDC_BUTTON1, ES_KEEPSIZE, ES_BORDER, ES_BORDER, IDC_BUTTON2, 0)
-	EASYSIZE(IDC_EDIT1, ES_KEEPSIZE, ES_BORDER, ES_BORDER, IDC_BUTTON1, 0)
-	EASYSIZE(IDC_STATIC, ES_KEEPSIZE, ES_BORDER, ES_BORDER, IDC_EDIT1, 0)
-	EASYSIZE(IDC_ShowImage, ES_BORDER, ES_BORDER, IDC_EDIT1, ES_BORDER, 0)
+	EASYSIZE(IDC_ManualSave, ES_KEEPSIZE, ES_BORDER, ES_BORDER, IDCANCEL, 0)
+	EASYSIZE(IDC_AutoSave, ES_KEEPSIZE, ES_BORDER, ES_BORDER, IDC_ManualSave, 0)
+	EASYSIZE(IDC_AutoTime, ES_KEEPSIZE, ES_BORDER, ES_BORDER, IDC_AutoSave, 0)
+	EASYSIZE(IDC_AutoTimeText, ES_KEEPSIZE, ES_BORDER, ES_BORDER, IDC_AutoTime, 0)
+	//EASYSIZE(IDC_ShowXXImage, ES_BORDER, ES_BORDER, IDC_AutoTime, ES_BORDER, 0)
+	//EASYSIZE(IDC_ShowXXImgText, ES_BORDER, ES_BORDER, IDC_ShowXXImgText,ES_BORDER, 0)
+	EASYSIZE(IDC_ShowImage, ES_BORDER, ES_BORDER, IDC_AutoTimeText, ES_BORDER, 0)
+	EASYSIZE(IDC_ShowImgText, ES_BORDER, ES_BORDER, IDC_AutoTimeText, ES_BORDER, 0)
 END_EASYSIZE_MAP
 
 void CALLBACK EXPORT AutoSave(
 	HWND hWnd,      // handle of CWnd that called SetTimer
 	UINT nMsg,      // WM_TIMER
-	UINT nIDEvent,   // timer identification
+	UINT_PTR nIDEvent,   // timer identification
 	DWORD dwTime    // system time
 	);
 
@@ -90,14 +94,12 @@ BEGIN_MESSAGE_MAP(CcaptureMFCDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDCANCEL, &CcaptureMFCDlg::OnBnClickedCancel)
-	ON_BN_CLICKED(IDC_BUTTON1, &CcaptureMFCDlg::OnBnClickedButton1)
-	ON_BN_CLICKED(IDC_BUTTON2, &CcaptureMFCDlg::OnBnClickedButton2)
-	ON_EN_CHANGE(IDC_EDIT1, &CcaptureMFCDlg::OnEnChangeEdit1)
 	ON_WM_TIMER()
 	ON_WM_SIZE()
-
-
 	ON_WM_CLOSE()
+	ON_BN_CLICKED(IDC_AutoSave, &CcaptureMFCDlg::OnBnClickedAutosave)
+	ON_BN_CLICKED(IDC_ManualSave, &CcaptureMFCDlg::OnBnClickedManualsave)
+	ON_EN_CHANGE(IDC_AutoTime, &CcaptureMFCDlg::OnEnChangeAutotime)
 END_MESSAGE_MAP()
 
 
@@ -136,13 +138,14 @@ BOOL CcaptureMFCDlg::OnInitDialog()
 	ShowWindow(SW_MAXIMIZE);
 
 	// TODO:  在此添加额外的初始化代码
+
 	pwnd = GetDlgItem(IDC_ShowImage);
 	//pwnd->MoveWindow(35,30,352,288);  
 	pDC = pwnd->GetDC();  
-	hDC = pDC->GetSafeHdc();
-	pwnd->GetClientRect(&rect);
-	//GetDlgItem(IDC_ShowImage)->GetWindowRect(&rect);
-
+	hDC[0] = pDC->GetSafeHdc();
+	pwnd->GetClientRect(&rect[0]);
+	//hDC[1] = GetDlgItem(IDC_ShowXXImage)->GetDC()->GetSafeHdc();
+	//GetDlgItem(IDC_ShowXXImage)->GetClientRect(&rect[1]);
 	//启动摄像头
 	if (!capture){
 		capture = cvCaptureFromCAM(0);
@@ -151,11 +154,13 @@ BOOL CcaptureMFCDlg::OnInitDialog()
 	{
 		AfxMessageBox(_T("无法打开摄像头"));
 	}
-	m_Frame = cvQueryFrame(capture);
-	CvvImage cvvimage;
-	cvvimage.CopyOf(m_Frame, 1);
+	g_Frame = cvQueryFrame(capture);
+	CvvImage cvvimage[2];
+	cvvimage[0].CopyOf(g_Frame, 1);
+	cvvimage[1].CopyOf(g_Frame, -1);
 	if (true){
-		cvvimage.DrawToHDC(hDC, &rect);
+		cvvimage[0].DrawToHDC(hDC[0], &rect[0]);
+		//cvvimage[1].DrawToHDC(hDC[1], &rect[1]);
 	}
 	SetTimer(TIMER1, 10, NULL);
 
@@ -253,65 +258,54 @@ void CcaptureMFCDlg::OnTimer(UINT_PTR nIDEvent)
 	// TODO:  在此添加消息处理程序代码和/或调用默认值
 
 	CDialogEx::OnTimer(nIDEvent);
-	//IplImage* m_Frame;
-	m_Frame = cvQueryFrame(capture);
-	CvvImage m_CvvImage;
-	m_CvvImage.CopyOf(m_Frame, 1);
+	g_Frame = cvQueryFrame(capture);
+	CvvImage m_CvvImage[2];
+	m_CvvImage[0].CopyOf(g_Frame, 1);
+	//m_CvvImage[1].CopyOf(g_Frame, -1);
 	if (true)
 	{
-		GetDlgItem(IDC_ShowImage)->GetClientRect(&rect);
-		m_CvvImage.DrawToHDC(hDC, &rect);
+		GetDlgItem(IDC_ShowImage)->GetClientRect(&rect[0]);
+		//GetDlgItem(IDC_ShowXXImage)->GetClientRect(&rect[1]);
+		m_CvvImage[0].DrawToHDC(hDC[0], &rect[0]);
+		//m_CvvImage[1].DrawToHDC(hDC[1], &rect[1]);
 	}
 	CDialogEx::OnTimer(nIDEvent);
 }
 
-void CcaptureMFCDlg::OnBnClickedButton1()
+void CcaptureMFCDlg::OnBnClickedAutosave()
 {
 	// TODO:  在此添加控件通知处理程序代码
 	UpdateData(TRUE);
 	CEdit * timebox;
 	timebox = (CEdit*)GetDlgItem(IDC_EDIT1);
 	timebox->GetDlgItemInt(timenum);
-	if (timenum < 0 || timenum == 0)
+	if (timenum < 0 ||  0 == timenum )
 	{
 		AfxMessageBox(_T("请输入大于0的数"));
 	}
 	else
 	{
-		if (state == 0)
+		if (0 == state)
 		{
 			state = 1;
-			CWnd * pwnd_button1 = GetDlgItem(IDC_BUTTON1);
-			pwnd_button1->SetWindowTextW(_T("停止截图"));
+			CWnd * pwnd_autosave = GetDlgItem(IDC_AutoSave);
+			pwnd_autosave->SetWindowTextW(_T("停止截图"));
+			GetDlgItem(IDC_EDIT1)->EnableWindow(FALSE); 
 			SetTimer(TIMER2, timenum, AutoSave);
 		}
 		else 
 		{
 			state = 0;
-			CWnd * pwnd_button1 = GetDlgItem(IDC_BUTTON1);
-			pwnd_button1->SetWindowTextW(_T("开始截图"));
+			CWnd * pwnd_autosave = GetDlgItem(IDC_AutoSave);
+			pwnd_autosave->SetWindowTextW(_T("开始截图"));
+			GetDlgItem(IDC_EDIT1)->EnableWindow(TRUE);
 			SetTimer(TIMER2, 10, NULL);
 		}
 		
 	}
 }
-/*void CcaptureMFCDlg::AutoRecoard(int savetime)
-{
-	while (state == 1)
-	{
-		SaveImg(m_Frame, 0);
-		Sleep(savetime);
-	}
-}*/
-void CcaptureMFCDlg::OnBnClickedButton2()
-{
-	// TODO:  在此添加控件通知处理程序代码
-	IplImage* s_Frame;
-	s_Frame = cvQueryFrame(capture);
-	SaveImg(s_Frame, 1);
-}
 
-void CcaptureMFCDlg::OnEnChangeEdit1()
+void CcaptureMFCDlg::OnEnChangeAutotime()
 {
 	// TODO:  如果该控件是 RICHEDIT 控件，它将不
 	// 发送此通知，除非重写 CDialogEx::OnInitDialog()
@@ -319,27 +313,36 @@ void CcaptureMFCDlg::OnEnChangeEdit1()
 	// 同时将 ENM_CHANGE 标志“或”运算到掩码中。
 
 	// TODO:  在此添加控件通知处理程序代码
-	//timenum=100;
-	//GetDlgItem(IDC_EDIT1)->GetDlgItemInt(timenum);
 }
+
+void CcaptureMFCDlg::OnBnClickedManualsave()
+{
+	// TODO:  在此添加控件通知处理程序代码
+	SaveImg(g_Frame, 1);
+}
+
 int CcaptureMFCDlg::SaveImg(Mat mat, int flag)
 {
 	//flag=1 不新建文件夹；flag=0新建文件夹
-	char path[100] = "F:\\pic\\";
+	char path[100] = R"(.\pic\)";
+	_mkdir(path);
 	time_t t = time(0);
 	char tmp[64];
 	strftime(tmp, sizeof(tmp), "%Y%m%d", localtime(&t));
 	strcat(path, tmp);
-	if (0 == flag && (_access(path, 0) == -1))
+	_mkdir(path);
+	if (0 == flag)
 	{
-		_mkdir(path);
+		strcat(path, R"(\自动截图)");
+		if (_access(path, 0) == -1)
+			_mkdir(path);
 	}
 	else if (1 == flag)
 	{
-		strcat(path, "\\手工截图");
-		_mkdir(path);
+		strcat(path, R"(\手动截图)");
+		if (_access(path, 0) == -1)
+			_mkdir(path);
 	}
-	_mkdir(path);
 	strftime(tmp, sizeof(tmp), "%H_%M_%S_", localtime(&t));
 
 	//取毫秒
@@ -349,7 +352,7 @@ int CcaptureMFCDlg::SaveImg(Mat mat, int flag)
 	char* milltime = new char;
 	_itoa(intmilltime, milltime, 10);
 	//cout << t1.millitm << endl;
-	strcat(path, "\\");
+	strcat(path, R"(\)");
 	strcat(path, tmp);
 	strcat(path, milltime);
 	strcat(path, ".jpg");
@@ -362,27 +365,10 @@ int CcaptureMFCDlg::SaveImg(Mat mat, int flag)
 void CALLBACK EXPORT AutoSave(
 	HWND hWnd,      // handle of CWnd that called SetTimer
 	UINT nMsg,      // WM_TIMER
-	UINT nIDEvent,   // timer identification
+	UINT_PTR nIDEvent,   // timer identification
 	DWORD dwTime    // system time
 	)
 {
 	CcaptureMFCDlg c;
-	/*if (!capture){
-		capture = cvCaptureFromCAM(0);
-	}
-	if (!capture)
-	{
-		AfxMessageBox(_T("无法打开摄像头"));
-		return;
-	}
-	IplImage* frame;
-	frame = cvQueryFrame(capture);
-	CvvImage cvvimage;
-	cvvimage.CopyOf(frame, 1);
-	if (true){
-	//	c.GetDlgItem(IDC_ShowImage)->GetClientRect(&rect);
-		cvvimage.DrawToHDC(hDC, &rect);
-	}*/
-	c.SaveImg(m_Frame, 0);
+	c.SaveImg(g_Frame, 0);
 }
-
