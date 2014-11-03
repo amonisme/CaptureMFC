@@ -15,12 +15,14 @@
 
 CvCapture* capture;
 IplImage* g_Frame;
-CRect rect[2];
+CRect rect[2],w_rect;
 CDC *pDC;
 HDC hDC[2];
 CWnd *pwnd;
 int timenum = 100;//定时截图的时间
 int state = 0; //开始截图按钮的状态
+int window_width = 0;
+int window_height = 0;
 
 BEGIN_EASYSIZE_MAP(CcaptureMFCDlg)
 	EASYSIZE(IDCANCEL, ES_KEEPSIZE, ES_BORDER, ES_BORDER, ES_KEEPSIZE, 0)
@@ -32,6 +34,7 @@ BEGIN_EASYSIZE_MAP(CcaptureMFCDlg)
 	//EASYSIZE(IDC_ShowXXImgText, ES_BORDER, ES_BORDER, IDC_ShowXXImgText,ES_BORDER, 0)
 	EASYSIZE(IDC_ShowImage, ES_BORDER, ES_BORDER, IDC_AutoTimeText, ES_BORDER, 0)
 	EASYSIZE(IDC_ShowImgText, ES_BORDER, ES_BORDER, IDC_AutoTimeText, ES_BORDER, 0)
+	EASYSIZE(IDC_ImgPath, ES_BORDER, IDC_ShowImage, IDC_AutoTimeText, ES_BORDER, 0)
 END_EASYSIZE_MAP
 
 void CALLBACK EXPORT AutoSave(
@@ -85,7 +88,7 @@ CcaptureMFCDlg::CcaptureMFCDlg(CWnd* pParent /*=NULL*/)
 void CcaptureMFCDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
-	DDX_Text(pDX, IDC_EDIT1, timenum);
+	DDX_Text(pDX, IDC_AutoTime, timenum);
 	//DDV_MinMaxInt(pDX, timenum, 1, 1000000);
 }
 
@@ -138,9 +141,12 @@ BOOL CcaptureMFCDlg::OnInitDialog()
 	ShowWindow(SW_MAXIMIZE);
 
 	// TODO:  在此添加额外的初始化代码
+	//获得窗口大小
+	GetWindowRect(&w_rect);
+	window_width = w_rect.Width();
+	window_height = w_rect.Height();
 
-	pwnd = GetDlgItem(IDC_ShowImage);
-	//pwnd->MoveWindow(35,30,352,288);  
+	pwnd = GetDlgItem(IDC_ShowImage); 
 	pDC = pwnd->GetDC();  
 	hDC[0] = pDC->GetSafeHdc();
 	pwnd->GetClientRect(&rect[0]);
@@ -163,7 +169,6 @@ BOOL CcaptureMFCDlg::OnInitDialog()
 		//cvvimage[1].DrawToHDC(hDC[1], &rect[1]);
 	}
 	SetTimer(TIMER1, 10, NULL);
-
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -277,7 +282,7 @@ void CcaptureMFCDlg::OnBnClickedAutosave()
 	// TODO:  在此添加控件通知处理程序代码
 	UpdateData(TRUE);
 	CEdit * timebox;
-	timebox = (CEdit*)GetDlgItem(IDC_EDIT1);
+	timebox = (CEdit*)GetDlgItem(IDC_AutoTime);
 	timebox->GetDlgItemInt(timenum);
 	if (timenum < 0 ||  0 == timenum )
 	{
@@ -290,7 +295,7 @@ void CcaptureMFCDlg::OnBnClickedAutosave()
 			state = 1;
 			CWnd * pwnd_autosave = GetDlgItem(IDC_AutoSave);
 			pwnd_autosave->SetWindowTextW(_T("停止截图"));
-			GetDlgItem(IDC_EDIT1)->EnableWindow(FALSE); 
+			GetDlgItem(IDC_AutoTime)->EnableWindow(FALSE); 
 			SetTimer(TIMER2, timenum, AutoSave);
 		}
 		else 
@@ -298,10 +303,9 @@ void CcaptureMFCDlg::OnBnClickedAutosave()
 			state = 0;
 			CWnd * pwnd_autosave = GetDlgItem(IDC_AutoSave);
 			pwnd_autosave->SetWindowTextW(_T("开始截图"));
-			GetDlgItem(IDC_EDIT1)->EnableWindow(TRUE);
+			GetDlgItem(IDC_AutoTime)->EnableWindow(TRUE);
 			SetTimer(TIMER2, 10, NULL);
-		}
-		
+		}	
 	}
 }
 
@@ -357,8 +361,15 @@ int CcaptureMFCDlg::SaveImg(Mat mat, int flag)
 	strcat(path, milltime);
 	strcat(path, ".jpg");
 	int save = cv::imwrite(path, mat);
-	cout << path << (save ? " Saved!" : "Can't be saved") << endl;
-	//imwrite(fileName,img);
+	CString showpath;
+	showpath = strcat(path, "  Saved!");
+	GetDlgItem(IDC_ImgPath)->SetWindowTextW(showpath);//显示图像存储路径
+	/*CWnd * pWnd = AfxGetMainWnd();
+	CDC *pDC = pWnd->GetDC();
+	int x = 500;
+	int y = 1000;
+	TextOut(pDC->GetSafeHdc(),x,y, showpath,100);
+	this->ReleaseDC(pDC);*/
 	return save;
 }
 
@@ -369,6 +380,10 @@ void CALLBACK EXPORT AutoSave(
 	DWORD dwTime    // system time
 	)
 {
-	CcaptureMFCDlg c;
-	c.SaveImg(g_Frame, 0);
+	CWinApp* pThisApp = AfxGetApp();
+	CWnd*pMainWnd = pThisApp->m_pMainWnd;
+	CcaptureMFCDlg* pMainDlg=(CcaptureMFCDlg*) pMainWnd;
+	if (pMainDlg == NULL)  return;
+	pMainDlg->SaveImg(g_Frame, 0);
 }
+
